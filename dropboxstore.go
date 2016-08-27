@@ -35,12 +35,13 @@ type DropboxStore struct {
 
 // New to create new store
 func New(config *Config) *DropboxStore {
-	svc := dropbox.New(dropbox.NewConfig(config.Token))
+	store := &DropboxStore{Config: config}
 
-	return &DropboxStore{
-		Config: config,
-		svc:    svc,
+	if config.Token != "" {
+		store.svc = dropbox.New(dropbox.NewConfig(config.Token))
 	}
+
+	return store
 }
 
 // UseIn decides which events this store will be used in
@@ -52,6 +53,8 @@ func (s DropboxStore) UseIn(composer *tusd.StoreComposer) {
 
 // NewUpload initilazes a new upload request
 func (s DropboxStore) NewUpload(info tusd.FileInfo) (id string, err error) {
+	s.svc = dropbox.New(dropbox.NewConfig(info.MetaData["token"]))
+
 	// write a zero-valued byte slice to get a session id
 	start, err := s.svc.Files.Upload.Session.Start(&dropbox.SessionStartInput{
 		Reader: bytes.NewReader(make([]byte, 0)),
@@ -73,6 +76,8 @@ func (s DropboxStore) WriteChunk(id string, offset int64, src io.Reader) (bytesU
 	if err != nil {
 		return
 	}
+
+	s.svc = dropbox.New(dropbox.NewConfig(info.MetaData["token"]))
 
 	lr := &io.LimitedReader{
 		R: src,
@@ -128,6 +133,8 @@ func (s DropboxStore) FinishUpload(id string) (err error) {
 	if err != nil {
 		return
 	}
+
+	s.svc = dropbox.New(dropbox.NewConfig(info.MetaData["token"]))
 
 	_, err = s.svc.Files.Upload.Session.Finish(&dropbox.SessionFinishInput{
 		Cursor: dropbox.SessionCursor{
