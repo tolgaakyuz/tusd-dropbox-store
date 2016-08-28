@@ -118,6 +118,7 @@ uploadparts:
 // GetInfo returns the file info
 func (s DropboxStore) GetInfo(id string) (info tusd.FileInfo, err error) {
 	info, err = s.getInfo(id)
+	delete(info.MetaData, "token")
 	return
 }
 
